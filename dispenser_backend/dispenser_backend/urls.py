@@ -14,10 +14,21 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.urls import path
-from .views       import UpdateContainerSchedule
+from django.urls import path, include
+from .views import (
+    UpdateContainerSchedule,
+    RegisterDispenserView,
+    UpdatePillNameView,
+    UpdateDispenserNameView,
+    DeleteDispenserView
+)
+
 
 urlpatterns = [
-    path('api/container-schedule/', UpdateContainerSchedule.as_view(),
-         name='update-container-schedule'),
+    path('api/container-schedule/', UpdateContainerSchedule.as_view(), name='update-container-schedule'),
+    path('api/register-dispenser/', RegisterDispenserView.as_view(), name='register-dispenser'),
+    path('api/update-pill-name/', UpdatePillNameView.as_view(), name='update-pill-name'),
+    path('api/update-dispenser-name/', UpdateDispenserNameView.as_view(), name='update-dispenser-name'),
+    path('api/delete-dispenser/<str:name>/', DeleteDispenserView.as_view(), name='delete-dispenser'),
+    path('authentication/', include('authentication.urls')),
 ]

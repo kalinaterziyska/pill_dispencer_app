@@ -6,14 +6,14 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('email', 'username', 'phoneNumber', 'machineId')
+        fields = ('email', 'username', 'phoneNumber')
 
 class RegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True, label="Confirm Password")
     
     class Meta:
         model = User
-        fields = ('email', 'username', 'phoneNumber', 'password', 'password2', 'machineId')
+        fields = ('email', 'username', 'phoneNumber', 'password', 'password2')
         extra_kwargs = {
             'password': {'write_only': True},
         }
@@ -50,7 +50,6 @@ class RegisterSerializer(serializers.ModelSerializer):
                 username=validated_data['username'],
                 phoneNumber=validated_data.get('phoneNumber'),
                 password=validated_data['password'],
-                machineId = validated_data['machineId']
             )
         except Exception as e:
             raise serializers.ValidationError(f"Error creating user: {str(e)}")

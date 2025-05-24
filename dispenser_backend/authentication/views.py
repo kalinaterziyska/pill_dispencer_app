@@ -64,4 +64,16 @@ class GetAllUsersView(APIView):
         users = User.objects.all()        
         serializer = UserSerializer(users, many=True)        
         return Response(serializer.data, status=status.HTTP_200_OK)
+ 
+class GetUserView(APIView):
+    def post(self, request):
+        user = User.objects.get(username=request.data.get("username"))
+        return Response({
+            'email': user.email,
+            'username': user.username,
+            'phoneNumber': user.phoneNumber,
+        })
     
+class RefreshAccessTokenView(TokenRefreshView):
+    serializer_class = TokenRefreshSerializer
+
