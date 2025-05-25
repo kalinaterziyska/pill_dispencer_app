@@ -20,7 +20,8 @@ from .views import (
     RegisterDispenserView,
     UpdatePillNameView,
     UpdateDispenserNameView,
-    DeleteDispenserView
+    DeleteDispenserView,
+    ShowAllDispensers
 )
 
 
@@ -30,5 +31,6 @@ urlpatterns = [
     path('api/update-pill-name/', UpdatePillNameView.as_view(), name='update-pill-name'),
     path('api/update-dispenser-name/', UpdateDispenserNameView.as_view(), name='update-dispenser-name'),
     path('api/delete-dispenser/<str:name>/', DeleteDispenserView.as_view(), name='delete-dispenser'),
+    path('api/list-all-user-dispensers/', ShowAllDispensers.as_view(), name='list-all-user-dispensers'),
     path('authentication/', include('authentication.urls')),
 ]

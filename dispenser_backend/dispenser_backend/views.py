@@ -185,4 +185,11 @@ class DeleteDispenserView(generics.DestroyAPIView):
                 {"detail": "Dispenser not found"},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
+
+class ShowAllDispensers(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        queryset = Dispenser.objects.filter(owner=request.user)
+        serializer = DispenserSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

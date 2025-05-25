@@ -28,7 +28,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         # Check if there's already a schedule for this container at the same weekday and time
-        if self.instance is None:  # Only check on creation
+        if self.instance is None:
             existing = Schedule.objects.filter(
                 container=data['container'],
                 weekday=data['weekday'],
@@ -55,7 +55,7 @@ class ContainerSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         # Check if slot_number is unique for this dispenser
-        if self.instance is None:  # Only check on creation
+        if self.instance is None:
             existing = Container.objects.filter(
                 dispenser=data['dispenser'],
                 slot_number=data['slot_number']
@@ -71,7 +71,7 @@ class ContainerSerializer(serializers.ModelSerializer):
 
         # Maximum number of containers per dispenser (e.g., 8 slots)
         MAX_SLOTS = 8
-        if self.instance is None:  # Only check on creation
+        if self.instance is None: 
             current_count = Container.objects.filter(dispenser=data['dispenser']).count()
             if current_count >= MAX_SLOTS:
                 raise serializers.ValidationError(
@@ -90,19 +90,16 @@ class DispenserSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'owner', 'containers']
 
     def validate_name(self, value):
-        # Check name length
         if len(value.strip()) < 3:
             raise serializers.ValidationError(_("Dispenser name must be at least 3 characters long"))
         
-        # Check for special characters
         if not re.match(r'^[a-zA-Z0-9\s\-_]+$', value):
             raise serializers.ValidationError(_("Dispenser name can only contain letters, numbers, spaces, hyphens, and underscores"))
         
         return value.strip()
 
     def validate(self, data):
-        # Check if name is unique for this owner
-        if self.instance is None:  # Only check on creation
+        if self.instance is None:
             request = self.context.get('request')
             if request and request.user:
                 existing = Dispenser.objects.filter(
@@ -114,16 +111,16 @@ class DispenserSerializer(serializers.ModelSerializer):
                         _("You already have a dispenser with this name")
                     )
 
-        # Maximum number of dispensers per user (e.g., 5)
-        MAX_DISPENSERS = 5
-        if self.instance is None:  # Only check on creation
-            request = self.context.get('request')
-            if request and request.user:
-                current_count = Dispenser.objects.filter(owner=request.user).count()
-                if current_count >= MAX_DISPENSERS:
-                    raise serializers.ValidationError(
-                        _(f"You cannot have more than {MAX_DISPENSERS} dispensers")
-                    )
+        # # Maximum number of dispensers per user (e.g., 5)
+        # MAX_DISPENSERS = 5
+        # if self.instance is None:  # Only check on creation
+        #     request = self.context.get('request')
+        #     if request and request.user:
+        #         current_count = Dispenser.objects.filter(owner=request.user).count()
+        #         if current_count >= MAX_DISPENSERS:
+        #             raise serializers.ValidationError(
+        #                 _(f"You cannot have more than {MAX_DISPENSERS} dispensers")
+        #             )
 
         return data
 
@@ -141,7 +138,6 @@ class RegisterDispenserSerializer(serializers.Serializer):
                 _("Invalid serial ID format. Expected format: SIZE-YYYYMMDD-XXXX (e.g., S-20250524-0001)")
             )
         
-        # Check if serial ID already registered
         if Dispenser.objects.filter(serial_id=value).exists():
             raise serializers.ValidationError(_("This dispenser is already registered"))
 
