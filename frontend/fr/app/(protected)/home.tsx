@@ -85,18 +85,28 @@ export default function HomeScreen() {
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      headerBackgroundColor={{ light: '#9669C7', dark: '#645273' }}
       headerImage={
         <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+          source={require('@/assets/images/kitty-removebg-preview1.png')}
+          style={styles.kittyImage}
         />
       }>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Your Containers</ThemedText>
       </ThemedView>
 
-      <ScrollView
+      <ThemedView style={styles.containerList}>
+        {containers.map((step, i) => (
+          <ThemedView key={i} style={styles.stepContainer}>
+            <ThemedText style={styles.stepText}>{step.name || `Container ${step.id}`}</ThemedText>
+            <Image source={require('@/assets/images/microwave.avif')} style={styles.stepImage} />
+          </ThemedView>
+        ))}
+      </ThemedView>
+
+
+      {/* <ScrollView
         contentContainerStyle={styles.containerList}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -111,7 +121,7 @@ export default function HomeScreen() {
             />
           </ThemedView>
         ))}
-      </ScrollView>
+      </ScrollView> */}
     </ParallaxScrollView>
   );
 }
@@ -126,27 +136,34 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   containerList: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     flexDirection: "column",
+    alignItems: "center",
+    gap:  40
   },
   stepContainer: {
     width: 200,
     marginRight: 16,
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    flexDirection: 'column',
     gap: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
+  stepText: {
+    marginBottom: 8,
+    fontSize: 16,
+    fontWeight: '600',
   },
   stepImage: {
     width: 180,
     height: 180,
     borderRadius: 12,
     backgroundColor: '#eee',
+  },
+  kittyImage: {
+    width: 450,
+    position: 'static',
+    bottom: 0,
+    left: 0,
   },
 });
 

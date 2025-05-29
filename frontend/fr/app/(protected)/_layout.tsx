@@ -2,7 +2,6 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '../../hooks/useColorScheme';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Slot } from 'expo-router';
 
 
 export default function ProtectedLayout() {
@@ -15,12 +14,8 @@ export default function ProtectedLayout() {
         headerShown: false,
       }}
     >
-      <Tabs.Screen name="home" options={{ title: 'home' }} />
+      <Tabs.Screen name="home" options={{ title: 'Home' }} />
       <Tabs.Screen name="MyPage" options={{ title: 'Profile' }} />
     </Tabs>
   );
 }
-
-// export default function RootLayout() {
-//   return <Slot />;
-// }
