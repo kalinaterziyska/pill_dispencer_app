@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 
+
 export default function TabLayout() {
   // const { isLoggedIn } = useAuth();
   // console.log('isLoggedIn in tabs/_layout:', isLoggedIn);
@@ -16,9 +17,9 @@ export default function TabLayout() {
       />
       {isLoggedIn ? (
         <Tabs.Screen
-          name="MyPage"
+          name="home"
           options={{
-            title: 'MyPage----',
+            title: 'home',
           }}
         />
       ) : null}

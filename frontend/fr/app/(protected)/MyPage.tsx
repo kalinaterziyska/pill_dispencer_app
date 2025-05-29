@@ -2,7 +2,7 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Button, StyleSheet, Text, View } from 'react-native';
-import { useAuth } from '../AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function MyPage() {
   const { isLoggedIn, logout } = useAuth();
@@ -32,8 +32,8 @@ export default function MyPage() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Добре дошъл в защитената страница!</Text>
-      <Button title="Изход" onPress={handleLogout} />
+      <Text style={styles.text}>Wellcome to the protected page!</Text>
+      <Button title="Exit" onPress={handleLogout} />
     </View>
   );
 }

@@ -16,7 +16,6 @@ export default function RegisterPage() {
   const [loading, setLoading] = React.useState(false);
 
   const validateEmail = (email: string) => {
-    // Много прост regex за email, може да го замениш с по-добър
     return /\S+@\S+\.\S+/.test(email);
   };
 
@@ -42,7 +41,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/authentication/register', {
+      const response = await fetch('http://localhost:8000/authentication/register/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

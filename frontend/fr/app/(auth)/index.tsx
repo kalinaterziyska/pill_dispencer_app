@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Button, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { useAuth } from '../AuthContext';
+import {AuthProvider, useAuth } from '../../context/AuthContext';
 
 export default function LoginPage() {
   const { login, isLoggedIn } = useAuth();
@@ -13,7 +13,7 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     if (isLoggedIn) {
-      router.replace('/MyPage');
+      router.replace('/home');
     }
   }, [isLoggedIn]);
 
@@ -23,7 +23,7 @@ export default function LoginPage() {
       setError(result.message ?? 'Error loging in');
     } else {
       setError(null);
-      router.replace('/MyPage');
+      router.replace('/home');
     }
   };
 

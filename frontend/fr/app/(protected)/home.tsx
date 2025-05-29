@@ -1,21 +1,42 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
-import { useAuth } from '../AuthContext';
+import { AuthProvider, useAuth } from '../../context/AuthContext';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
-type Container = {
+export interface Schedule {
+  // e.g. id: number;
+  //      time: string;
+}
+
+/** One physical slot inside the dispenser. */
+export interface Slot {
+  id: number;          // 13, 14, 15, 16, …
+  dispenser: number;   // always matches the parent container’s id (5 here)
+  slot_number: number; // 1 … 4
+  name: string;   // "Empty Slot 1", …
+  schedules: Schedule[];
+}
+
+/** The top-level container returned by ContainerSerializer. */
+export interface Container {
+  id: number;        // 5
+  name: string;      // "container2"
+  owner: string;     // "toni"
+  containers: Slot[];  // nested array of Slot objects
+}
+
+interface DispenserFromApi {
   id: number;
-  // adjust these fields to match your ContainerSerializer output:
   name: string;
   owner: string;
-  //containers: ;
-};
+  containers: Container[];
+}
 
 export default function HomeScreen() {
-  const { token } = useAuth();                    // assume you have a hook to get the JWT or session token
+  const { token } = useAuth();
   const [containers, setContainers] = useState<Container[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string| null>(null);
@@ -23,28 +44,20 @@ export default function HomeScreen() {
   useEffect(() => {
     async function loadContainers() {
       try {
-        const res = await fetch(
-          'http://127.0.0.1:8000/api/list-all-user-dispensers/',  // have to edit
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Accept': 'application/json',
-            },
-          }
-        );
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
-        const dispensers = await res.json() as Array<{
-          id: number;
-          name: string;
-          containers: Container[];
-        }>;
+        const headers: HeadersInit = {
+          'Accept': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        };
+    
+        const res = await fetch( 'http://localhost:8000/api/list-all-user-dispensers/',{ headers });
+        if (!res.ok) throw new Error(`Server responded ${res.status}`);
+        const data: Container[] = await res.json();
+        console.log('loaded containers:', data);
+        setContainers(data);
 
-        // flatten all containers across all dispensers:
-        const allContainers = dispensers.flatMap(d => d.containers);
-        setContainers(allContainers);
-      } catch (e: any) {
-        console.error(e);
-        setError(e.message || 'Unknown error');
+        if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      } catch (err: any) {
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -114,6 +127,7 @@ const styles = StyleSheet.create({
   },
   containerList: {
     paddingHorizontal: 16,
+    flexDirection: "column",
   },
   stepContainer: {
     width: 200,
@@ -135,3 +149,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#eee',
   },
 });
+
+
