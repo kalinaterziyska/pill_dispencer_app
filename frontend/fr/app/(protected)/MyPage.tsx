@@ -1,4 +1,3 @@
-// app/(tabs)/MyPage.tsx
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Button, StyleSheet, Text, View } from 'react-native';
@@ -11,9 +10,9 @@ export default function MyPage() {
 
   useEffect(() => {
     if (!isLoggedIn) {
-      router.replace('/'); // пренасочване към login
+      router.replace('/'); // rerout to  login
     } else {
-      setLoading(false); // можем да покажем съдържанието
+      setLoading(false);
     }
   }, [isLoggedIn]);
 

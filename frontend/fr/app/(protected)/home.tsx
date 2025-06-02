@@ -1,30 +1,32 @@
-import { useEffect, useState } from 'react';
-import { StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Modal } from 'react-native';
 import { Image } from 'expo-image';
 import { AuthProvider, useAuth } from '../../context/AuthContext';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { IconSymbol } from '@/components/ui/IconSymbol';
 
 export interface Schedule {
-  // e.g. id: number;
-  //      time: string;
+  id?: number;
+  time: string;
+  weekday?: number;
 }
 
 /** One physical slot inside the dispenser. */
 export interface Slot {
-  id: number;          // 13, 14, 15, 16, …
-  dispenser: number;   // always matches the parent container’s id (5 here)
-  slot_number: number; // 1 … 4
-  name: string;   // "Empty Slot 1", …
+  id: number;
+  dispenser: number;   // always matches the parent container's id
+  slot_number: number;
+  name: string;
   schedules: Schedule[];
 }
 
 /** The top-level container returned by ContainerSerializer. */
 export interface Container {
-  id: number;        // 5
-  name: string;      // "container2"
-  owner: string;     // "toni"
+  id: number;
+  name: string;
+  owner: string;
   containers: Slot[];  // nested array of Slot objects
 }
 
@@ -39,7 +41,8 @@ export default function HomeScreen() {
   const { token } = useAuth();
   const [containers, setContainers] = useState<Container[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string| null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
 
   useEffect(() => {
     async function loadContainers() {
@@ -49,7 +52,7 @@ export default function HomeScreen() {
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         };
     
-        const res = await fetch( 'http://localhost:8000/api/list-all-user-dispensers/',{ headers });
+        const res = await fetch('http://localhost:8000/api/list-all-user-dispensers/', { headers });
         if (!res.ok) throw new Error(`Server responded ${res.status}`);
         const data: Container[] = await res.json();
         console.log('loaded containers:', data);
@@ -84,45 +87,80 @@ export default function HomeScreen() {
   }
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#9669C7', dark: '#645273' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/kitty-removebg-preview1.png')}
-          style={styles.kittyImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Your Containers</ThemedText>
-      </ThemedView>
+    <>
+      <ParallaxScrollView
+        headerBackgroundColor={{ light: '#9669C7', dark: '#645273' }}
+        headerImage={
+          <Image
+            source={require('@/assets/images/kitty-removebg-preview1.png')}
+            style={styles.kittyImage}
+          />
+        }>
+        <ThemedView style={styles.titleContainer}>
+          <ThemedText type="title">Your Containers</ThemedText>
+        </ThemedView>
 
-      <ThemedView style={styles.containerList}>
-        {containers.map((step, i) => (
-          <ThemedView key={i} style={styles.stepContainer}>
-            <ThemedText style={styles.stepText}>{step.name || `Container ${step.id}`}</ThemedText>
-            <Image source={require('@/assets/images/microwave.avif')} style={styles.stepImage} />
-          </ThemedView>
-        ))}
-      </ThemedView>
+        <ThemedView style={styles.containerList}>
+          {containers.map((container, i) => (
+            <TouchableOpacity
+              key={i}
+              style={styles.stepContainer}
+              onPress={() => setSelectedContainer(container)}
+              activeOpacity={0.7}
+            >
+              <ThemedText style={styles.stepText}>{container.name || `Container ${container.id}`}</ThemedText>
+              <Image source={require('@/assets/images/microwave.avif')} style={styles.stepImage} />
+            </TouchableOpacity>
+          ))}
+        </ThemedView>
+      </ParallaxScrollView>
 
-
-      {/* <ScrollView
-        contentContainerStyle={styles.containerList}
-        horizontal
-        showsHorizontalScrollIndicator={false}
+      <Modal
+        visible={selectedContainer !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setSelectedContainer(null)}
       >
-        {containers.map((c) => (
-          <ThemedView key={c.id} style={styles.stepContainer}>
-            <ThemedText type="subtitle">{c.name || `Container ${c.id}`}</ThemedText>
-            <Image
-              source={require('@/assets/images/microwave.avif')}
-              style={styles.stepImage}
-              resizeMode="contain"
-            />
-          </ThemedView>
-        ))}
-      </ScrollView> */}
-    </ParallaxScrollView>
+        {selectedContainer && (
+          <ParallaxScrollView
+            headerBackgroundColor={{ light: '#9669C7', dark: '#645273' }}
+            headerImage={
+              <Image source={require('@/assets/images/microwave.avif')} style={styles.headerImage} />
+            }
+          >
+            <TouchableOpacity 
+              style={[styles.backButton, { paddingLeft: 0 }]}
+              onPress={() => setSelectedContainer(null)}
+            >
+              <IconSymbol name="chevron.left" size={24} color="#645273" />
+              <ThemedText>Back to Containers</ThemedText>
+            </TouchableOpacity>
+
+            <ThemedText type="title">{selectedContainer.name || `Container ${selectedContainer.id}`}</ThemedText>
+            
+            <ThemedText>ID: {selectedContainer.id}</ThemedText>
+
+            <ThemedView style={styles.schedulesContainer}>
+              <ThemedText type="subtitle">Slots & Schedules</ThemedText>
+              {selectedContainer.containers?.map((slot) => (
+                <ThemedView key={slot.id} style={styles.scheduleItem}>
+                  <ThemedText style={styles.slotTitle}>Slot {slot.slot_number}: {slot.name}</ThemedText>
+                  {slot.schedules?.length > 0 ? (
+                    slot.schedules.map((schedule: Schedule, index: number) => (
+                      <ThemedText key={index} style={styles.scheduleText}>
+                        {schedule.time}
+                      </ThemedText>
+                    ))
+                  ) : (
+                    <ThemedText style={styles.emptyText}>No schedules set</ThemedText>
+                  )}
+                </ThemedView>
+              ))}
+            </ThemedView>
+          </ParallaxScrollView>
+        )}
+      </Modal>
+    </>
   );
 }
 
@@ -139,7 +177,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     flexDirection: "column",
     alignItems: "center",
-    gap:  40
+    gap: 40
   },
   stepContainer: {
     width: 200,
@@ -157,13 +195,53 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     borderRadius: 12,
-    backgroundColor: '#eee',
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   kittyImage: {
     width: 450,
     position: 'static',
     bottom: 0,
     left: 0,
+  },
+  headerImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  detailsContainer: {
+    marginTop: 24,
+    gap: 8,
+  },
+  schedulesContainer: {
+    marginTop: 24,
+    gap: 16,
+  },
+  scheduleItem: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    gap: 8,
+  },
+  slotTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  scheduleText: {
+    fontSize: 16,
+    color: '#645273',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });
 

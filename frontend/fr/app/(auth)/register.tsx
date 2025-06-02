@@ -67,7 +67,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <View style={{ padding: 20 }}>
+    <View style={{ padding: 20, flex: 1, justifyContent: 'center' }}>
+      <Text style={{ fontSize: 24, marginBottom: 20 }}>Register</Text>
       <TextInput
         placeholder="Email"
         value={email}
@@ -108,17 +109,21 @@ export default function RegisterPage() {
       {error && <Text style={{ color: 'red', marginBottom: 12 }}>{error}</Text>}
       {success && <Text style={{ color: 'green', marginBottom: 12 }}>{success}</Text>}
 
-      <Button
-        title={loading ? 'Registering...' : 'Register'}
+      <TouchableOpacity 
         onPress={handleRegister}
         disabled={loading}
-      />
+        style={{ backgroundColor: '#645273', padding: 10, borderRadius: 4 }}
+      >
+        <Text style={{ color: 'white', textAlign: 'center' }}>
+          {loading ? 'Registering...' : 'REGISTER'}
+        </Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => router.push('/')}>
-            <Text style={{ marginTop: 20, color: 'blue', textAlign: 'center' }}>
-            Or LOGIN
-            </Text>
-        </TouchableOpacity>
+      <TouchableOpacity onPress={() => router.push('/')}>
+        <Text style={{ marginTop: 20, color: '#564763', textAlign: 'center', fontWeight: '600' }}>
+          or login
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 }

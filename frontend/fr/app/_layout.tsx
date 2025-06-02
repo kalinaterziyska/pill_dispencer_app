@@ -25,7 +25,6 @@ export default function RootLayout() {
   return (
     <AuthProvider>
        <Slot />
-      {/* <RootLayoutNav /> */}
     </AuthProvider>
   );
 }

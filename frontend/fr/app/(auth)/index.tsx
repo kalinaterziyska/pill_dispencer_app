@@ -45,10 +45,17 @@ export default function LoginPage() {
         style={{ marginBottom: 12, borderWidth: 1, padding: 8, borderRadius: 4 }}
       />
       {error && <Text style={{ color: 'red', marginBottom: 12 }}>{error}</Text>}
-      <Button title="LOGIN" onPress={handleLogin} />
+      <TouchableOpacity 
+        onPress={handleLogin}
+        style={{ backgroundColor: '#645273', padding: 10, borderRadius: 4 }}
+      >
+        <Text style={{ color: 'white', textAlign: 'center' }}>
+          {'LOG IN'}
+        </Text>
+      </TouchableOpacity>
 
       <TouchableOpacity onPress={() => router.push('/register')}>
-        <Text style={{ marginTop: 20, color: 'blue', textAlign: 'center' }}>
+        <Text style={{ marginTop: 20, color: '#564763', textAlign: 'center', fontWeight: '600' }}>
           or register
         </Text>
       </TouchableOpacity>
