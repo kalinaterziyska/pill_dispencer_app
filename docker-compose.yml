@@ -26,12 +26,12 @@ services:
 
   frontend:
     build:
-      context: ./frontend/fr
+      context: ./frontend
     command: npm start -- --clear
     ports:
       - "8081:8081"
     volumes:
-      - ./frontend/fr:/app
+      - ./frontend:/app
       - /app/node_modules
 
 volumes:
