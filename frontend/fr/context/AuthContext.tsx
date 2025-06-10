@@ -22,6 +22,7 @@ interface TokenResponse {
 type AuthContextType = {
   isLoggedIn: boolean;
   token: string | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<LoginResult>;
   logout: () => void;
 };
@@ -29,6 +30,7 @@ type AuthContextType = {
 const AuthContext = React.createContext<AuthContextType>({
   isLoggedIn: false,
   token: null,
+  isLoading: true,
   login: async () => ({ success: false, message: 'Not implemented' }),
   logout: () => {},
 });
@@ -36,6 +38,7 @@ const AuthContext = React.createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
   const [token, setToken] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
   // Check for existing token on mount
   React.useEffect(() => {
@@ -53,6 +56,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error) {
         console.error('Error checking stored token:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
     checkToken();
@@ -115,7 +120,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, token, login, logout }}>
+    <AuthContext.Provider value={{ isLoggedIn, token, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

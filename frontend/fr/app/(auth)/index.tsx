@@ -23,7 +23,6 @@ export default function LoginPage() {
       setError(result.message ?? 'Error loging in');
     } else {
       setError(null);
-      router.replace('/home');
     }
   };
 
