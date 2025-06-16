@@ -27,12 +27,22 @@ services:
   frontend:
     build:
       context: ./frontend
-    command: npm start -- --clear
+    command: sh -c "npm run set-ip && npm start -- --tunnel --clear"
     ports:
       - "8081:8081"
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    image: node:20
+    container_name: pill_dispenser_app-frontend-1
+    environment:
+      - DOCKER_HOST=tcp://host.docker.internal:2375
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    network_mode: "host"
 
 volumes:
   postgres_data: 

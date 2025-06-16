@@ -1,8 +1,9 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { useRouter, useSegments } from 'expo-router';
 import React, { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { Slot } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 function RootLayoutNav() {
   const { isLoggedIn, isLoading } = useAuth();
@@ -19,25 +20,29 @@ function RootLayoutNav() {
     if (isLoggedIn && inAuthGroup) {
       router.replace('/(protected)/home');
     } else if (!isLoggedIn && !inAuthGroup) {
-      router.replace('/(auth)');
+      router.replace('/(auth)/login');
     }
   }, [isLoggedIn, isLoading, segments]);
 
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  return <Slot />;
+  return (
+    <SafeAreaView style={{ flex: 1 }}>
+      {isLoading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" />
+        </View>
+      ) : (
+        <Slot />
+      )}
+    </SafeAreaView>
+  );
 }
 
 export default function RootLayout() {
   return (
     <AuthProvider>
-       <RootLayoutNav />
+      <SafeAreaProvider>
+        <RootLayoutNav />
+      </SafeAreaProvider>
     </AuthProvider>
   );
 }

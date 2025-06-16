@@ -1,129 +1,169 @@
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Button, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Link } from 'expo-router';
+import React, { useState } from 'react';
+import { Text, TouchableOpacity, View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { useAuthFlow } from '@/hooks/useAuthFlow';
+import FormField from '@/components/ui/FormField';
+import { ThemedView } from '@/components/ThemedView';
+import { ThemedText } from '@/components/ThemedText';
+import { Image } from 'expo-image';
+import { Colors } from '@/constants/Colors';
 
 export default function RegisterPage() {
-  const router = useRouter();
+  const { loading, error, success, handleRegister } = useAuthFlow();
+  const [formData, setFormData] = useState({
+    email: '',
+    username: '',
+    phoneNumber: '',
+    password: '',
+    password2: '',
+  });
 
-  const [email, setEmail] = React.useState('');
-  const [username, setUsername] = React.useState('');
-  const [phoneNumber, setPhoneNumber] = React.useState('');
-  const [password, setPassword] = React.useState('');
-  const [password2, setPassword2] = React.useState('');
-
-  const [error, setError] = React.useState<string | null>(null);
-  const [success, setSuccess] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(false);
-
-  const validateEmail = (email: string) => {
-    return /\S+@\S+\.\S+/.test(email);
+  const handleChange = (name: string, value: string) => {
+    setFormData(prevState => ({ ...prevState, [name]: value }));
   };
 
-  const handleRegister = async () => {
-    setError(null);
-    setSuccess(null);
-
-    if (!email || !username || !phoneNumber || !password || !password2) {
-      setError('Please fill all the fields');
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setError('Please write a valid email');
-      return;
-    }
-
-    if (password !== password2) {
-      setError('Passwords dont match');
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch('http://localhost:8000/authentication/register/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, username, phoneNumber, password, password2 }),
-      });
-
-      if (response.status === 200) {
-        setSuccess('Registration Successful!');
-        setTimeout(() => {
-          router.replace('/');
-        }, 2000);
-      } else if (response.status === 400) {
-        setError('Error registrating. Please try again');
-      } else {
-        setError('Unexpected error: ${response.status}');
-      }
-    } catch (e) {
-      setError('Error conecting to server');
-    } finally {
-      setLoading(false);
-    }
+  const onRegister = () => {
+    handleRegister(formData);
   };
 
   return (
-    <View style={{ padding: 20, flex: 1, justifyContent: 'center' }}>
-      <Text style={{ fontSize: 24, marginBottom: 20 }}>Register</Text>
-      <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        style={{ marginBottom: 12, borderWidth: 1, padding: 8, borderRadius: 4 }}
-      />
-      <TextInput
-        placeholder="User"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-        style={{ marginBottom: 12, borderWidth: 1, padding: 8, borderRadius: 4 }}
-      />
-      <TextInput
-        placeholder="Phone number"
-        value={phoneNumber}
-        onChangeText={setPhoneNumber}
-        keyboardType="phone-pad"
-        style={{ marginBottom: 12, borderWidth: 1, padding: 8, borderRadius: 4 }}
-      />
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={{ marginBottom: 12, borderWidth: 1, padding: 8, borderRadius: 4 }}
-      />
-      <TextInput
-        placeholder="Repeat password"
-        value={password2}
-        onChangeText={setPassword2}
-        secureTextEntry
-        style={{ marginBottom: 12, borderWidth: 1, padding: 8, borderRadius: 4 }}
-      />
+    <ThemedView style={{flex: 1}}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <View style={styles.header}>
+          <Image source={require('@/assets/images/kitty-removebg-preview1.png')} style={styles.logo} />
+          <ThemedText type="title" style={styles.title}>Create Account</ThemedText>
+          <ThemedText style={styles.subtitle}>Join us today!</ThemedText>
+        </View>
+        
+        <View style={styles.formContainer}>
+          <FormField
+            label="Email"
+            icon="envelope"
+            placeholder="Enter your email"
+            value={formData.email}
+            onChangeText={(v) => handleChange('email', v)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <FormField
+            label="Username"
+            icon="user"
+            placeholder="Choose a username"
+            value={formData.username}
+            onChangeText={(v) => handleChange('username', v)}
+            autoCapitalize="none"
+          />
+          <FormField
+            label="Phone Number"
+            icon="phone"
+            placeholder="Enter your phone number"
+            value={formData.phoneNumber}
+            onChangeText={(v) => handleChange('phoneNumber', v)}
+            keyboardType="phone-pad"
+          />
+          <FormField
+            label="Password"
+            icon="lock"
+            placeholder="Create a password"
+            value={formData.password}
+            onChangeText={(v) => handleChange('password', v)}
+            secureTextEntry
+          />
+          <FormField
+            label="Repeat Password"
+            icon="lock"
+            placeholder="Confirm your password"
+            value={formData.password2}
+            onChangeText={(v) => handleChange('password2', v)}
+            secureTextEntry
+          />
+        </View>
 
-      {error && <Text style={{ color: 'red', marginBottom: 12 }}>{error}</Text>}
-      {success && <Text style={{ color: 'green', marginBottom: 12 }}>{success}</Text>}
+        {error && <Text style={styles.errorText}>{error}</Text>}
+        {success && <Text style={styles.successText}>{success}</Text>}
 
-      <TouchableOpacity 
-        onPress={handleRegister}
-        disabled={loading}
-        style={{ backgroundColor: '#645273', padding: 10, borderRadius: 4 }}
-      >
-        <Text style={{ color: 'white', textAlign: 'center' }}>
-          {loading ? 'Registering...' : 'REGISTER'}
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity 
+          onPress={onRegister}
+          disabled={loading}
+          style={styles.button}
+        >
+          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Register</Text>}
+        </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('/')}>
-        <Text style={{ marginTop: 20, color: '#564763', textAlign: 'center', fontWeight: '600' }}>
-          or login
-        </Text>
-      </TouchableOpacity>
-    </View>
+        <View style={styles.footer}>
+          <ThemedText>Already have an account? </ThemedText>
+          <Link href="/login" asChild>
+            <TouchableOpacity>
+              <ThemedText style={styles.linkText}>Login</ThemedText>
+            </TouchableOpacity>
+          </Link>
+        </View>
+      </ScrollView>
+    </ThemedView>
   );
 }
+
+const styles = StyleSheet.create({
+    container: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: Colors.dark.background,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: 24,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.dark.text,
+  },
+  formContainer: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  successText: {
+    color: 'green',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  button: {
+    backgroundColor: Colors.dark.tint,
+    padding: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: 60,
+  },
+  buttonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 18,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  linkText: {
+    color: Colors.dark.tint,
+    fontWeight: '600',
+  },
+});

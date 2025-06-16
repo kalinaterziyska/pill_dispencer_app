@@ -1,132 +1,244 @@
 import React, { useState } from 'react';
-import { Modal, TouchableOpacity, View, StyleSheet, Button } from 'react-native';
-import { Image } from 'expo-image';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { Container, Slot, Schedule, weekdayMap } from '@/types/dispenser';
+import { Modal, View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
+
+import { Container, Slot } from '@/types/dispenser';
+import { useAuth } from '@/context/AuthContext';
 import EditSlotModal from './EditSlotModal';
+import { ThemedText } from '../ThemedText';
+import ScheduleCard from './ScheduleCard';
+import { ThemedView } from '../ThemedView';
+import { API_BASE_URL } from '@/constants/api';
 
 interface DispenserDetailModalProps {
-  visible: boolean;
   container: Container | null;
+  isVisible: boolean;
   onClose: () => void;
-  onUpdateSlot: (slot: Slot, pillName: string, schedules: Schedule[]) => Promise<void>;
+  onDataNeedsRefresh: () => void;
+  onDeleteContainer: (containerId: number) => Promise<void>;
 }
 
-export default function DispenserDetailModal({ visible, container, onClose, onUpdateSlot }: DispenserDetailModalProps) {
-  const [editingSlot, setEditingSlot] = useState<Slot | null>(null);
+export default function DispenserDetailModal({
+  container,
+  isVisible,
+  onClose,
+  onDataNeedsRefresh,
+  onDeleteContainer,
+}: DispenserDetailModalProps) {
+  const [editSlotModalVisible, setEditSlotModalVisible] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const auth = useAuth();
 
-  const handleOpenEditSlot = (slot: Slot) => {
-    setEditingSlot(slot);
+  const handleModalClose = () => {
+    if (needsRefresh) {
+      onDataNeedsRefresh();
+    }
+    onClose();
   };
-  
-  const handleCloseEditSlot = () => {
-    setEditingSlot(null);
+
+  const handleEditSlot = (slot: Slot) => {
+    setSelectedSlot(slot);
+    setEditSlotModalVisible(true);
+  };
+
+  const handleCloseEditSlot = (refresh: boolean) => {
+    setEditSlotModalVisible(false);
+    setSelectedSlot(null);
+    if (refresh) {
+      setNeedsRefresh(true);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!container) return;
+    Alert.alert(
+      "Delete Dispenser",
+      `Are you sure you want to permanently delete "${container.name}"? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => handleDelete() }
+      ]
+    );
+  };
+
+  const handleDelete = async () => {
+    if (!container) return;
+    try {
+      await onDeleteContainer(container.id);
+      setNeedsRefresh(true);
+      handleModalClose();
+    } catch (error) {
+      Alert.alert("Error", "Failed to delete dispenser. Please try again.");
+    }
   };
 
   if (!container) return null;
 
+  const renderSlots = () => (
+    container.containers?.map((slot: Slot) => (
+      <View key={slot.id}>
+        <ScheduleCard slot={slot} />
+        <TouchableOpacity style={styles.editButton} onPress={() => handleEditSlot(slot)}>
+          <FontAwesome name="pencil" size={16} color="white" />
+          <ThemedText style={styles.editButtonText}>Edit Slot Details</ThemedText>
+        </TouchableOpacity>
+      </View>
+    ))
+  );
+
   return (
-    <>
-      <Modal
-        visible={visible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={onClose}
-      >
-        <ParallaxScrollView
-          headerBackgroundColor={{ light: '#9669C7', dark: '#645273' }}
-          headerImage={
-            <Image source={require('@/assets/images/microwave.avif')} style={styles.headerImage} />
-          }
-        >
-          <TouchableOpacity 
-            style={[styles.backButton, { paddingLeft: 0 }]}
-            onPress={onClose}
-          >
-            {/* Using text instead of icon for reliability */}
-            <ThemedText>Back</ThemedText>
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={handleModalClose}
+    >
+      <View style={styles.centeredView}>
+        <ThemedView style={styles.modalView}>
+          <TouchableOpacity style={styles.closeButton} onPress={handleModalClose}>
+            <FontAwesome name="times" size={24} color="#888" />
           </TouchableOpacity>
+          <ScrollView>
+            <View style={styles.contentContainer}>
+              <ThemedText style={styles.title}>{container.name}</ThemedText>
+              <ThemedText style={styles.subtitle}>Owner: {container.owner}</ThemedText>
+              
+              <ThemedText style={styles.sectionTitle}>Schedules</ThemedText>
+              {renderSlots()}
+            </View>
+          </ScrollView>
 
-          <ThemedText type="title">{container.name || `Container ${container.id}`}</ThemedText>
+          <TouchableOpacity style={styles.deleteButton} onPress={handleConfirmDelete}>
+            <FontAwesome name="trash" size={18} color="#FF453A" />
+            <ThemedText style={styles.deleteButtonText}>Delete Dispenser</ThemedText>
+          </TouchableOpacity>
           
-          <ThemedText>ID: {container.id}</ThemedText>
-
-          <ThemedView style={styles.schedulesContainer}>
-            <ThemedText type="subtitle">Slots & Schedules</ThemedText>
-            {container.containers?.map((slot) => (
-              <ThemedView key={slot.id} style={styles.scheduleItem}>
-                <View style={styles.slotHeader}>
-                  <ThemedText style={styles.slotTitle}>{slot.name || `Slot ${slot.slot_number}`}</ThemedText>
-                  <Button title="Edit" onPress={() => handleOpenEditSlot(slot)} />
-                </View>
-                {slot.schedules?.length > 0 ? (
-                  slot.schedules.map((schedule: Schedule, index: number) => (
-                    <ThemedText key={index} style={styles.scheduleText}>
-                      {schedule.weekday ? `${weekdayMap[schedule.weekday]}: ` : ''}{schedule.time}
-                    </ThemedText>
-                  ))
-                ) : (
-                  <ThemedText style={styles.emptyText}>No schedules set</ThemedText>
-                )}
-              </ThemedView>
-            ))}
-          </ThemedView>
-        </ParallaxScrollView>
-      </Modal>
-
-      <EditSlotModal 
-        visible={editingSlot !== null}
-        slot={editingSlot}
-        onClose={handleCloseEditSlot}
-        onUpdateSlot={onUpdateSlot}
-      />
-    </>
+          {selectedSlot && container && (
+            <EditSlotModal 
+              isVisible={editSlotModalVisible}
+              slot={selectedSlot}
+              onClose={handleCloseEditSlot}
+              onUpdate={async (pillName, schedules) => {
+                if (!auth || !auth.token) {
+                  Alert.alert("Authentication Error", "You are not logged in.");
+                  return;
+                }
+                const url = `${API_BASE_URL}/api/container-schedule/`;
+                try {
+                    const response = await fetch(url, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${auth.token}`
+                        },
+                        body: JSON.stringify({
+                            dispenser_name: container.name,
+                            slot_number: selectedSlot.slot_number,
+                            pill_name: pillName,
+                            schedules: schedules.map(({ weekday, time }) => ({ weekday, time })),
+                        })
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Failed to update slot');
+                    }
+                    handleCloseEditSlot(true);
+                } catch(e) {
+                    const error = e as Error;
+                    Alert.alert('Update Failed', error.message);
+                }
+              }}
+            />
+          )}
+        </ThemedView>
+      </View>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.6)',
   },
-  backButton: {
+  modalView: {
+    margin: 20,
+    width: '90%',
+    height: '85%',
+    backgroundColor: '#121212',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    zIndex: 1,
+  },
+  contentContainer: {
+    paddingTop: 30, // Space for the close button
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#888',
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#E5E5EA',
+    marginBottom: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#2C2C2E',
+    paddingTop: 20,
+  },
+  editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    justifyContent: 'center',
+    padding: 12,
+    backgroundColor: '#2C2C2E',
+    borderRadius: 8,
+    marginTop: -12,
+    marginBottom: 24,
+    alignSelf: 'center',
+    width: '60%',
   },
-  schedulesContainer: {
-    marginTop: 24,
-    gap: 16,
+  editButtonText: {
+    color: 'white',
+    marginLeft: 8,
+    fontWeight: 'bold',
   },
-  scheduleItem: {
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    gap: 8,
-  },
-  slotHeader: {
+  deleteButton: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    width: '100%',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 10,
+    backgroundColor: 'rgba(255, 69, 58, 0.1)',
   },
-  slotTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  scheduleText: {
+  deleteButtonText: {
+    color: '#FF453A',
+    marginLeft: 8,
+    fontWeight: 'bold',
     fontSize: 16,
-    color: '#645273',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
-    fontStyle: 'italic',
   },
 }); 

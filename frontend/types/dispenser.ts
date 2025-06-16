@@ -13,7 +13,7 @@ export interface Slot {
   id: number;
   dispenser: number;   // always matches the parent container's id
   slot_number: number;
-  name: string;
+  pill_name: string;
   schedules: Schedule[];
 }
 
@@ -22,5 +22,5 @@ export interface Container {
   id: number;
   name: string;
   owner: string;
-  containers: Slot[];  // nested array of Slot objects
+  containers: Slot[];
 } 

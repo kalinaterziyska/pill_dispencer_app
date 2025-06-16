@@ -1,49 +1,94 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Container, Slot, Schedule } from '../types/dispenser';
+import { Container } from '../types/dispenser';
+import { API_BASE_URL } from '@/constants/api';
 
 export function useDispensers() {
   const { token } = useAuth();
   const [containers, setContainers] = useState<Container[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  async function loadContainers() {
-    setError(null);
+  const api = useMemo(() => {
+    if (token) {
+      return new DispenserAPI(token);
+    }
+    return null;
+  }, [token]);
+
+  const fetchContainers = useCallback(async () => {
+    if (!api) return;
+    setLoading(true);
     try {
-      const headers: HeadersInit = {
-        'Accept': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      };
-  
-      const res = await fetch('http://localhost:8000/api/list-all-user-dispensers/', { headers });
-      if (!res.ok) throw new Error(`Server responded ${res.status}`);
-      const data: Container[] = await res.json();
+      const data = await api.fetchContainers();
       setContainers(data);
-
-    } catch (err: any) {
-      setError(err.message);
+    } catch (e: any) {
+      setError(e);
     } finally {
       setLoading(false);
     }
-  }
+  }, [api]);
 
   useEffect(() => {
-    if (token) {
-        loadContainers();
-    }
-  }, [token]);
+    fetchContainers();
+  }, [fetchContainers]);
 
-  const addContainer = async (name: string, serialId: string) => {
-    const headers: HeadersInit = {
+  const addContainer = useCallback(async (name: string, serialId: string) => {
+    if (!api) {
+      throw new Error("API client not initialized");
+    }
+    const newContainer = await api.addContainer(name, serialId);
+    setContainers(prev => [...prev, newContainer]);
+  }, [api]);
+
+  const deleteContainer = useCallback(async (containerId: number) => {
+    if (!api) {
+      throw new Error("API client not initialized");
+    }
+    const containerToDelete = containers.find(c => c.id === containerId);
+    if (!containerToDelete) {
+      throw new Error("Container not found");
+    }
+
+    await api.deleteContainer(containerToDelete.name);
+    setContainers(prev => prev.filter(c => c.id !== containerId));
+  }, [api, containers]);
+
+  const onRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    fetchContainers().finally(() => setIsRefreshing(false));
+  }, [fetchContainers]);
+
+  const retryFetch = useCallback(() => {
+    setError(null);
+    fetchContainers();
+  }, [fetchContainers]);
+
+  return { containers, loading, error, isRefreshing, onRefresh, addContainer, deleteContainer, retryFetch };
+}
+
+class DispenserAPI {
+  constructor(private token: string) {}
+
+  private getHeaders(): HeadersInit {
+    return {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
+      'Authorization': `Bearer ${this.token}`,
     };
+  }
+
+  async fetchContainers(): Promise<Container[]> {
+    const res = await fetch(`${API_BASE_URL}/api/list-all-user-dispensers/`, { headers: this.getHeaders() });
+    if (!res.ok) throw new Error(`Server responded with status ${res.status}`);
+    return await res.json();
+  }
+
+  async addContainer(name: string, serialId: string): Promise<Container> {
     const body = JSON.stringify({ name, serial_id: serialId });
-    const res = await fetch('http://localhost:8000/api/register-dispenser/', {
+    const res = await fetch(`${API_BASE_URL}/api/register-dispenser/`, {
       method: 'POST',
-      headers,
+      headers: this.getHeaders(),
       body,
     });
     if (!res.ok) {
@@ -51,35 +96,19 @@ export function useDispensers() {
       const detail = errorData.detail || errorData.name?.[0] || errorData.serial_id?.[0] || 'An unknown error occurred.';
       throw new Error(detail);
     }
-    await loadContainers(); // Refresh the list
-  };
+    return await res.json();
+  }
 
-  const updateSlot = async (dispenserName: string, slot: Slot, pillName: string, schedules: Schedule[]) => {
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    };
-    
-    const body = JSON.stringify({
-      dispenser_name: dispenserName,
-      slot_number: slot.slot_number,
-      pill_name: pillName,
-      schedules: schedules.map(({ time, weekday }) => ({ time, weekday })),
+  async deleteContainer(containerName: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/delete-dispenser/${containerName}/`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${this.token}`,
+      },
     });
-
-    const res = await fetch('http://localhost:8000/api/container-schedule/', {
-      method: 'PUT',
-      headers,
-      body,
-    });
-
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.detail || 'Failed to update slot.');
+      const errorData = await res.json().catch(() => ({ detail: 'Failed to delete dispenser' }));
+      throw new Error(errorData.detail);
     }
-    await loadContainers(); // Refresh data
-  };
-
-  return { containers, loading, error, loadContainers, addContainer, updateSlot, setError };
+  }
 } 

@@ -6,7 +6,24 @@
 const tintColorLight = '#645273';
 const tintColorDark = '#645273';
 
-export const Colors = {
+export interface ColorScheme {
+  text: string;
+  background: string;
+  tint: string;
+  icon: string;
+  tabIconDefault: string;
+  tabIconSelected: string;
+  border: string;
+  inputBackground: string;
+  placeholder: string;
+}
+
+export interface ColorsType {
+  light: ColorScheme;
+  dark: ColorScheme;
+}
+
+export const Colors: ColorsType = {
   light: {
     text: '#11181C',
     background: '#fff',
@@ -15,6 +32,8 @@ export const Colors = {
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
     border: '#E6E8EB',
+    inputBackground: '#F1F1F1',
+    placeholder: '#888',
   },
   dark: {
     text: '#ECEDEE',
@@ -24,5 +43,7 @@ export const Colors = {
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
     border: '#2B2F31',
+    inputBackground: '#1C1C1E',
+    placeholder: '#888',
   },
 };

@@ -1,186 +1,183 @@
-import React, { useState } from 'react';
-import { StyleSheet, ActivityIndicator, TouchableOpacity, View, Button } from 'react-native';
-import { Image } from 'expo-image';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
+import React, { useEffect } from 'react';
+import { StyleSheet, ActivityIndicator, View, RefreshControl, FlatList, Button, ScrollView, TouchableOpacity } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import { Container } from '@/types/dispenser';
-
+import { ThemedText } from '@/components/ThemedText';
 import { useDispensers } from '@/hooks/useDispensers';
 import AddDispenserModal from '@/components/home/AddDispenserModal';
+import { FontAwesome } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+
 import DispenserDetailModal from '@/components/home/DispenserDetailModal';
+import { FloatingActionButton } from '@/components/home/FloatingActionButton';
+import { DispenserCard } from '@/components/DispenserCard';
+import { Container } from '@/types/dispenser';
+import { useAuthFlow } from '@/hooks/useAuthFlow';
 
 export default function HomeScreen() {
-  const { 
-    containers, 
-    loading, 
-    error, 
-    loadContainers, 
-    addContainer, 
-    updateSlot,
-    setError 
-  } = useDispensers();
-  
-  const [selectedContainer, setSelectedContainer] = useState<Container | null>(null);
-  const [isAddModalVisible, setAddModalVisible] = useState(false);
+  const { userData } = useAuthFlow();
+  const router = useRouter();
 
-  const handleUpdateSlot = async (slot: any, pillName: string, schedules: any) => {
-    if (!selectedContainer) return;
-    await updateSlot(selectedContainer.name, slot, pillName, schedules);
+  const {
+    containers,
+    loading: isLoading,
+    error,
+    retryFetch,
+    isRefreshing,
+    onRefresh,
+    addContainer,
+    deleteContainer,
+  } = useDispensers();
+
+  const [addModalVisible, setAddModalVisible] = React.useState(false);
+  
+  const [selectedContainer, setSelectedContainer] = React.useState<Container | null>(null);
+
+  useEffect(() => {
+    // This effect ensures that if the detailed view is open and the dispenser list
+    // is refreshed, the detailed view gets the updated data automatically.
+    if (selectedContainer) {
+      const newContainerData = containers.find(c => c.id === selectedContainer.id);
+      if (newContainerData) {
+        setSelectedContainer(newContainerData);
+      } else {
+        // The container was likely deleted, so close the modal.
+        setSelectedContainer(null);
+      }
+    }
+  }, [containers]);
+
+  const handleOpenDetails = (container: Container) => {
+    setSelectedContainer(container);
   };
 
-  if (loading && containers.length === 0) {
+  const handleOpenAdd = () => {
+    setAddModalVisible(true);
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedContainer(null);
+  };
+  
+  const handleDataRefresh = () => {
+    onRefresh();
+  };
+
+  const renderContent = () => {
+    if (isLoading && !isRefreshing) {
+      return <ActivityIndicator size="large" color="#fff" style={styles.centered} />;
+    }
+
+    if (error) {
+      return (
+        <View style={styles.centered}>
+          <ThemedText style={{marginBottom: 10}}>Error: {error.message}</ThemedText>
+          <Button title="Retry" onPress={retryFetch} color="#007AFF" />
+        </View>
+      );
+    }
+
+    if (!containers || containers.length === 0) {
+      return (
+        <ScrollView 
+          contentContainerStyle={styles.centered}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#fff" />
+          }
+        >
+          <ThemedText>No dispensers found.</ThemedText>
+          <ThemedText>Click the '+' button to add one.</ThemedText>
+        </ScrollView>
+      );
+    }
+
     return (
-      <ThemedView style={styles.center}>
-        <ActivityIndicator size="large" />
-        <ThemedText>Loading your containers…</ThemedText>
-      </ThemedView>
+      <FlatList
+        data={containers}
+        renderItem={({ item }) => (
+          <DispenserCard 
+            dispenser={item} 
+            onPress={() => handleOpenDetails(item)} 
+          />
+        )}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor="#fff" />
+        }
+      />
     );
-  }
+  };
 
   return (
-    <View style={styles.pageContainer}>
-      <ParallaxScrollView
-        headerBackgroundColor={{ light: '#9669C7', dark: '#645273' }}
-        headerImage={
-          <Image
-            source={require('@/assets/images/kitty-removebg-preview1.png')}
-            style={styles.kittyImage}
-          />
-        }>
-        <View style={styles.mainContainer}>
-          <ThemedView style={styles.titleContainer}>
-            <ThemedText type="title">Your Containers</ThemedText>
-          </ThemedView>
-
-          {error && (
-            <ThemedView style={styles.errorContainer}>
-              <ThemedText type="error" style={styles.errorText}>{error}</ThemedText>
-              <Button title="Retry" onPress={() => { setError(null); loadContainers(); }} />
-            </ThemedView>
-          )}
-
-          <ThemedView style={styles.containerList}>
-            {containers.map((container, i) => (
-              <TouchableOpacity
-                key={i}
-                style={styles.stepContainer}
-                onPress={() => setSelectedContainer(container)}
-                activeOpacity={0.7}
-              >
-                <ThemedText style={styles.stepText}>{container.name || `Container ${container.id}`}</ThemedText>
-                <Image source={require('@/assets/images/microwave.avif')} style={styles.stepImage} />
-              </TouchableOpacity>
-            ))}
-          </ThemedView>
+    <ThemedView style={styles.container}>
+      <View style={styles.headerContainer}>
+        <View>
+          <ThemedText style={styles.headerGreeting}>Welcome back,</ThemedText>
+          <ThemedText type="title" style={styles.headerUsername}>
+            {userData ? userData.username : '...'}
+          </ThemedText>
         </View>
-      </ParallaxScrollView>
-
-      <View style={styles.addButtonContainer}>
-        <TouchableOpacity 
-          onPress={() => setAddModalVisible(true)}
-          style={styles.addButton}
-        >
-          <IconSymbol name="plus" size={24} color="white" />
+        <TouchableOpacity onPress={() => router.push('/MyPage')} style={styles.profileIcon}>
+          <FontAwesome name="user-circle" size={32} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      <AddDispenserModal 
-        visible={isAddModalVisible}
+      {renderContent()}
+
+      <AddDispenserModal
+        isVisible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
         onAddContainer={addContainer}
       />
 
-      <DispenserDetailModal
-        visible={selectedContainer !== null}
-        container={selectedContainer}
-        onClose={() => setSelectedContainer(null)}
-        onUpdateSlot={handleUpdateSlot}
-      />
-    </View>
+      {selectedContainer && (
+        <DispenserDetailModal
+          container={selectedContainer}
+          isVisible={!!selectedContainer}
+          onClose={handleCloseDetails}
+          onDataNeedsRefresh={handleDataRefresh}
+          onDeleteContainer={deleteContainer}
+        />
+      )}
+
+      <FloatingActionButton onPress={handleOpenAdd} />
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  pageContainer: {
+  container: {
     flex: 1,
+    backgroundColor: '#151718',
   },
-  mainContainer: {
-    flex: 1,
-    paddingBottom: 10,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 16, // Reduced padding to remove extra space
+    paddingBottom: 16,
+    backgroundColor: '#1C1C1E',
   },
-  titleContainer: {
-    padding: 16,
-  },
-  containerList: {
-    paddingHorizontal: 0,
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 40
-  },
-  stepContainer: {
-    width: 200,
-    marginRight: 16,
-    alignItems: 'flex-start',
-    flexDirection: 'column',
-    gap: 8,
-  },
-  stepText: {
-    marginBottom: 8,
+  headerGreeting: {
     fontSize: 16,
-    fontWeight: '600',
+    color: '#9BA1A6',
   },
-  stepImage: {
-    width: 180,
-    height: 180,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.05)',
+  headerUsername: {
+    fontSize: 28,
+    fontWeight: 'bold',
   },
-  kittyImage: {
-    width: 450,
-    position: 'static',
-    bottom: 0,
-    left: 0,
+  profileIcon: {
+    padding: 8,
   },
-  errorContainer: {
-    padding: 16,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 0, 0, 0.1)',
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  errorText: {
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  addButtonContainer: {
-    position: 'absolute',
-    bottom: 90,
-    right: 32,
-    zIndex: 1000,
-  },
-  addButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#645273',
+  centered: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+  },
+  listContainer: {
+    paddingVertical: 10,
+    paddingBottom: 80, // Ensure space for FAB
   },
 });
 

@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { Modal, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import { Image } from 'expo-image';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import FormField from '@/components/ui/FormField';
 
 interface AddDispenserModalProps {
-  visible: boolean;
+  isVisible: boolean;
   onClose: () => void;
   onAddContainer: (name: string, serialId: string) => Promise<void>;
 }
 
-export default function AddDispenserModal({ visible, onClose, onAddContainer }: AddDispenserModalProps) {
+export default function AddDispenserModal({ isVisible, onClose, onAddContainer }: AddDispenserModalProps) {
   const [name, setName] = useState('');
   const [serialId, setSerialId] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
@@ -39,89 +39,108 @@ export default function AddDispenserModal({ visible, onClose, onAddContainer }: 
 
   return (
     <Modal
-      visible={visible}
+      visible={isVisible}
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
-      <ParallaxScrollView
-        headerBackgroundColor={{ light: '#9669C7', dark: '#645273' }}
-        headerImage={
-          <Image
-            source={require('@/assets/images/kitty-removebg-preview1.png')}
-            style={styles.kittyImage}
-          />
-        }
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: '#121212' }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <ThemedView style={styles.formContainer}>
-          <ThemedText type="title">Add New Dispenser</ThemedText>
-          <ThemedText style={{ marginBottom: 24, color: '#555', textAlign: 'center' }}>
-            Enter a unique name and the serial ID for your new dispenser.
-          </ThemedText>
-          <TextInput
-            style={styles.input}
-            placeholder="Dispenser Name"
-            value={name}
-            onChangeText={(text) => {
-              setName(text);
-              if (modalError) setModalError(null);
-            }}
-            placeholderTextColor="#999"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Serial ID"
-            value={serialId}
-            onChangeText={(text) => {
-              setSerialId(text);
-              if (modalError) setModalError(null);
-            }}
-            placeholderTextColor="#999"
-          />
-          <TouchableOpacity style={styles.modalButton} onPress={handleAdd}>
-            <ThemedText style={styles.modalButtonText}>Add Dispenser</ThemedText>
-          </TouchableOpacity>
-          {modalError && <ThemedText type="error" style={{ marginTop: 16, textAlign: 'center' }}>{modalError}</ThemedText>}
-          <TouchableOpacity
-            onPress={handleClose}
-            style={styles.closeButton}
-          >
-            <ThemedText style={{ color: '#645273' }}>Cancel</ThemedText>
-          </TouchableOpacity>
+        <ThemedView style={styles.container}>
+          <ScrollView contentContainerStyle={styles.scrollContentContainer}>
+            <View style={styles.header}>
+              <Image
+                source={require('@/assets/images/kitty-removebg-preview1.png')}
+                style={styles.kittyImage}
+              />
+              <ThemedText type="title" style={styles.title}>Add New Dispenser</ThemedText>
+              <ThemedText style={styles.subtitle}>
+                Enter a unique name and the serial ID for your new dispenser.
+              </ThemedText>
+            </View>
+
+            <View style={styles.formContainer}>
+              <FormField
+                label="Dispenser Name"
+                placeholder="e.g., Morning Meds"
+                value={name}
+                onChangeText={(text: string) => {
+                  setName(text);
+                  if (modalError) setModalError(null);
+                }}
+                icon="cube"
+              />
+              <FormField
+                label="Serial ID"
+                placeholder="Find this on the back of the device"
+                value={serialId}
+                onChangeText={(text: string) => {
+                  setSerialId(text);
+                  if (modalError) setModalError(null);
+                }}
+                icon="barcode"
+              />
+              {modalError && <ThemedText type="error" style={styles.errorText}>{modalError}</ThemedText>}
+            </View>
+          </ScrollView>
+
+          <View style={styles.footer}>
+            <TouchableOpacity style={styles.modalButton} onPress={handleAdd}>
+              <ThemedText style={styles.modalButtonText}>Add Dispenser</ThemedText>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+              <ThemedText style={styles.closeButtonText}>Cancel</ThemedText>
+            </TouchableOpacity>
+          </View>
         </ThemedView>
-      </ParallaxScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'space-between',
+    padding: 20,
+    backgroundColor: '#121212',
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
   kittyImage: {
-    width: 450,
-    position: 'static',
-    bottom: 0,
-    left: 0,
+    width: 200,
+    height: 200,
+    resizeMode: 'contain',
+    marginBottom: 20,
+  },
+  title: {
+    marginBottom: 10,
+  },
+  subtitle: {
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 30,
   },
   formContainer: {
-    alignItems: 'center',
-  },
-  input: {
-    height: 50,
-    marginVertical: 12,
-    borderWidth: 1,
-    borderColor: '#555',
-    backgroundColor: '#333',
-    color: 'white',
-    padding: 15,
     width: '100%',
-    borderRadius: 10,
+    marginBottom: 20,
+  },
+  footer: {
+    paddingBottom: 20,
   },
   modalButton: {
     backgroundColor: '#645273',
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 25,
-    marginTop: 10,
-    width: '100%',
     alignItems: 'center',
     elevation: 2,
     shadowColor: '#000',
@@ -135,6 +154,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   closeButton: {
-    marginTop: 20,
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#645273',
+    fontSize: 16,
+  },
+  errorText: {
+    marginTop: 16,
+    textAlign: 'center'
   },
 }); 
