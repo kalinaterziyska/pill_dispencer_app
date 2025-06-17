@@ -271,12 +271,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginHorizontal: 5,
     alignItems: 'center',
+    backgroundColor: '#645273',
   },
   updateButton: {
     backgroundColor: '#645273',
   },
   cancelButton: {
-    backgroundColor: '#645273',
+    backgroundColor: '#d42828',
   },
   actionButtonText: {
     color: 'white',

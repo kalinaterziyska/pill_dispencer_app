@@ -1,0 +1,307 @@
+openapi: 3.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.pilldispenser.com
+    description: Production server
+
+info:
+  title: Pill Dispenser API
+  description: API for managing pill dispensers, containers, and schedules
+  version: "1.0.0"
+  contact:
+    email: support@pilldispenser.com
+  license:
+    name: MIT
+    url: 'https://opensource.org/licenses/MIT'
+
+tags:
+  - name: dispensers
+    description: Operations for managing pill dispensers
+  - name: containers
+    description: Operations for managing pill containers and schedules
+  - name: authentication
+    description: User authentication and authorization
+
+paths:
+  /api/register-dispenser/:
+    post:
+      tags:
+        - dispensers
+      summary: Register a new pill dispenser
+      operationId: registerDispenser
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDispenserRequest'
+      responses:
+        '201':
+          description: Dispenser created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dispenser'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /api/container-schedule/:
+    put:
+      tags:
+        - containers
+      summary: Update container schedule and pill name
+      operationId: updateContainerSchedule
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContainerScheduleUpdate'
+      responses:
+        '200':
+          description: Schedule updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: Dispenser or container not found
+
+  /api/update-pill-name/:
+    put:
+      tags:
+        - containers
+      summary: Update container pill name
+      operationId: updatePillName
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePillNameRequest'
+      responses:
+        '200':
+          description: Pill name updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Container'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: Dispenser or container not found
+
+  /api/update-dispenser-name/:
+    put:
+      tags:
+        - dispensers
+      summary: Update dispenser name
+      operationId: updateDispenserName
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDispenserNameRequest'
+      responses:
+        '200':
+          description: Dispenser name updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dispenser'
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+        '404':
+          description: Dispenser not found
+
+  /api/delete-dispenser/{name}/:
+    delete:
+      tags:
+        - dispensers
+      summary: Delete a dispenser
+      operationId: deleteDispenser
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Name of the dispenser to delete
+      responses:
+        '200':
+          description: Dispenser deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Dispenser not found
+
+  /api/list-all-user-dispensers/:
+    get:
+      tags:
+        - dispensers
+      summary: Get all dispensers for the authenticated user
+      operationId: listUserDispensers
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of dispensers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dispenser'
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RegisterDispenserRequest:
+      type: object
+      required:
+        - name
+        - serial_id
+      properties:
+        name:
+          type: string
+          example: "Kitchen Pill Dispenser"
+        serial_id:
+          type: string
+          example: "4ABCD123"
+
+    ContainerScheduleUpdate:
+      type: object
+      required:
+        - dispenser_name
+        - slot_number
+        - pill_name
+        - schedules
+      properties:
+        dispenser_name:
+          type: string
+          example: "Kitchen Pill Dispenser"
+        slot_number:
+          type: integer
+          example: 1
+        pill_name:
+          type: string
+          example: "Ibuprofen"
+        schedules:
+          type: array
+          items:
+            $ref: '#/components/schemas/Schedule'
+
+    UpdatePillNameRequest:
+      type: object
+      required:
+        - dispenser_name
+        - slot_number
+        - pill_name
+      properties:
+        dispenser_name:
+          type: string
+          example: "Kitchen Pill Dispenser"
+        slot_number:
+          type: integer
+          example: 1
+        pill_name:
+          type: string
+          example: "Ibuprofen"
+
+    UpdateDispenserNameRequest:
+      type: object
+      required:
+        - current_name
+        - new_name
+      properties:
+        current_name:
+          type: string
+          example: "Kitchen Pill Dispenser"
+        new_name:
+          type: string
+          example: "Living Room Pill Dispenser"
+
+    Dispenser:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Kitchen Pill Dispenser"
+        serial_id:
+          type: string
+          example: "4ABCD123"
+        size:
+          type: string
+          example: "4"
+        owner:
+          type: string
+          example: "user@example.com"
+        containers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Container'
+
+    Container:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        slot_number:
+          type: integer
+          example: 1
+        pill_name:
+          type: string
+          example: "Ibuprofen"
+        schedules:
+          type: array
+          items:
+            $ref: '#/components/schemas/Schedule'
+
+    Schedule:
+      type: object
+      required:
+        - weekday
+        - time
+      properties:
+        weekday:
+          type: integer
+          minimum: 1
+          maximum: 7
+          example: 1
+        time:
+          type: string
+          format: time
+          example: "08:00:00" 
